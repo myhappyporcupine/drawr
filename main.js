@@ -10,6 +10,17 @@ class Point {
 	}
 }
 
+// Animatron - an animation particle containing deltas and duration
+class Animatron {
+	constructor(dx, dy, dr, start, end) {
+		this.dx = dx;  // delta for x coordinate
+		this.dy = dy;  // delta for y coordinate
+		this.dr = dr;  // delta for rotation
+		this.startFrame = start;
+		this.endFrame = end;
+	}
+}
+
 // Thing
 class Thing {
 	constructor(x, y) {
@@ -26,6 +37,7 @@ class Thing {
 			new Point(-100,  -50),
 			new Point( -50,  -50)
 		];
+		this.rotation = 0;
 
 		this.strokeStyle = 'white'
 		this.fillStyle = 'green';
@@ -33,12 +45,31 @@ class Thing {
 		this.isClosed = false;
 		this.isFilled = false;
 		this.isStroked = true;
+		this.isAnimated = false;
+
+		this.animatrons = [];
+		this.frameCounter = 0;
+		this.frames = 100;
 	}
 
-	draw() {
+	run() {
+		// Update
+		if (this.isAnimated) {
+			for (const animatron of this.animatrons) {
+				if (this.frameCounter >= animatron.startFrame
+				    && this.frameCounter < animatron.endFrame) {
+					this.anchor.x += animatron.dx;
+					this.anchor.y += animatron.dy;
+					this.rotation += animatron.dr;
+				}
+			}
+		}
+
+		// Draw
 		if (this.points.length > 1) {
 			ctx.save();
 			ctx.translate(this.anchor.x, this.anchor.y);
+			ctx.rotate(this.rotation);
 			ctx.beginPath();
 			ctx.moveTo(this.points[0].x, this.points[0].y);
 			for (let i = 1; i < this.points.length; i++) {
@@ -57,6 +88,12 @@ class Thing {
 			}
 			ctx.restore();
 		}
+
+		// Counter
+		this.frameCounter++;
+		if (this.frameCounter >= this.frames) {
+			this.frameCounter = 0;
+		}
 	}
 
 	push(x, y) {
@@ -67,6 +104,20 @@ class Thing {
 
 	pop() {
 		return this.points.pop();
+	}
+
+	pushAnimatron(dx, dy, dr, start, end) {
+		const animatron = new Animatron(dx, dy, dr, start, end);
+		this.animatrons.push(animatron);
+		return animatron;
+	}
+
+	animate() {
+		return this.isAnimated = true;
+	}
+
+	unanimate() {
+		return this.isAnimated = false;
 	}
 
 	close() {
@@ -96,10 +147,12 @@ class Thing {
 
 // Setup
 const star = new Thing(400, 300);
+star.pushAnimatron(4, 2, 0.2, 20, 30);
+star.pushAnimatron(-2, -1, -0.1, 50, 70);
 
 // Drawing Loop
 (function loop() {
 	requestAnimationFrame(loop);
 	ctx.clearRect(0, 0, canvas.width, canvas.height);  // background
-	star.draw();
+	star.run();
 })();
